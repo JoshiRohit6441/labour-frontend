@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -11,15 +11,19 @@ import { useToast } from '@/hooks/use-toast';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 // Map support
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import useGoogleMaps from '@/hooks/useGoogleMaps';
 
 const CreateJob = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isLoaded, google } = useGoogleMaps();
+  const addressInputRef = useRef<HTMLInputElement>(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [jobType, setJobType] = useState<'IMMEDIATE' | 'SCHEDULED' | 'BIDDING'>('IMMEDIATE');
@@ -47,11 +51,54 @@ const CreateJob = () => {
   const DefaultIcon = L.icon({ iconUrl, shadowUrl: iconShadow });
   (L.Marker.prototype as any).options.icon = DefaultIcon;
 
-  const LocationPicker = ({ setLat, setLng }: any) => {
+  const updateAddressFields = (place: google.maps.places.PlaceResult) => {
+    setAddress(place.formatted_address || '');
+    let city = '';
+    let state = '';
+    let pincode = '';
+
+    for (const component of place.address_components || []) {
+      const componentType = component.types[0];
+      switch (componentType) {
+        case 'locality':
+          city = component.long_name;
+          break;
+        case 'administrative_area_level_1':
+          state = component.long_name;
+          break;
+        case 'postal_code':
+          pincode = component.long_name;
+          break;
+      }
+    }
+    setCity(city);
+    setState(state);
+    setPincode(pincode);
+    setLatitude(place.geometry?.location?.lat() || 0);
+    setLongitude(place.geometry?.location?.lng() || 0);
+  };
+
+  const LocationPicker = ({ setLat, setLng, setAddress, setCity, setState, setPincode }: any) => {
+    const map = useMap();
     useMapEvents({
       click(e) {
         setLat(e.latlng.lat);
         setLng(e.latlng.lng);
+        if (google) {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: e.latlng }, (results: any, status: any) => {
+            if (status === 'OK' && results[0]) {
+              updateAddressFields(results[0]);
+              map.setView(e.latlng, map.getZoom());
+            } else {
+              toast({
+                title: 'Geocoding failed',
+                description: 'Could not find address for this location.',
+                variant: 'destructive',
+              });
+            }
+          });
+        }
       },
     });
     return latitude && longitude ? <Marker position={[latitude, longitude]} /> : null;
@@ -62,13 +109,52 @@ const CreateJob = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lng);
+
+          if (google) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+              if (status === 'OK' && results[0]) {
+                updateAddressFields(results[0]);
+              }
+            });
+          }
         },
-        () => {}
+        () => {
+          toast({
+            title: 'Geolocation failed',
+            description: 'Could not retrieve your current location.',
+            variant: 'destructive',
+          });
+        }
       );
     }
-  }, []);
+  }, [isLoaded, google]);
+
+  useEffect(() => {
+    if (isLoaded && google && addressInputRef.current) {
+      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: "in" }, // Restrict to India for better relevance, can be removed
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          updateAddressFields(place);
+        } else {
+          toast({
+            title: 'Address not found',
+            description: 'Please select a valid address from the suggestions.',
+            variant: 'destructive',
+          });
+        }
+      });
+    }
+  }, [isLoaded, google]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +187,7 @@ const CreateJob = () => {
         materialsProvidedBy: jobType === 'BIDDING' && materialsProvidedBy ? materialsProvidedBy : undefined,
         expectedDays: jobType === 'BIDDING' && expectedDays ? Number(expectedDays) : undefined,
       } as const;
-      await userJobsApi.create(payload as any);
+      await userJobsApi.createJob(payload as any);
       toast({ title: 'Job created' });
       navigate('/user/jobs');
     } catch (err: any) {
@@ -210,7 +296,7 @@ const CreateJob = () => {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="address">Address</Label>
-                    <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} required />
+                    <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} required ref={addressInputRef} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
@@ -235,9 +321,9 @@ const CreateJob = () => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       />
-                      <LocationPicker setLat={setLatitude} setLng={setLongitude} />
+                      <LocationPicker setLat={setLatitude} setLng={setLongitude} setAddress={setAddress} setCity={setCity} setState={setState} setPincode={setPincode} />
                     </MapContainer>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 hidden"> {/* Hidden lat/long inputs */}
                       <Input id="latitude" type="number" value={latitude} onChange={(e) => setLatitude(Number(e.target.value))} placeholder="Latitude" />
                       <Input id="longitude" type="number" value={longitude} onChange={(e) => setLongitude(Number(e.target.value))} placeholder="Longitude" />
                     </div>
@@ -259,5 +345,3 @@ const CreateJob = () => {
 };
 
 export default CreateJob;
-
-

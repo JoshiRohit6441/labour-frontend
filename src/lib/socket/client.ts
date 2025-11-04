@@ -4,7 +4,7 @@ import { authApi } from '@/lib/api/auth';
 const URL = process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:8000';
 
 const getSocket = (): Socket => {
-  const token = authApi.getAccessToken();
+  const token = localStorage.getItem('accessToken');
 
   const socket = io(URL, {
     autoConnect: false,
@@ -12,6 +12,8 @@ const getSocket = (): Socket => {
       token: token ? `${token}` : ''
     }
   });
+
+  console.log("socket : ", socket)
 
   socket.on('connect_error', (err) => {
     console.error('Socket connection error:', err.message);

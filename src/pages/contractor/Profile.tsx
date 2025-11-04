@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import {
@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { contractorProfileApi } from "@/lib/api/contractor";
 import { useToast } from "@/hooks/use-toast";
+import useGoogleMaps from '@/hooks/useGoogleMaps';
 
 // 🗺️ React Leaflet for Map
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -26,11 +27,50 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const LocationPicker = ({ lat, lng, setLat, setLng }: any) => {
+const LocationPicker = ({ lat, lng, setForm, google }: any) => {
+  const map = useMap();
   useMapEvents({
     click(e) {
-      setLat(e.latlng.lat);
-      setLng(e.latlng.lng);
+      setForm((f: any) => ({
+        ...f,
+        businessLatitude: e.latlng.lat,
+        businessLongitude: e.latlng.lng,
+      }));
+      if (google) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: e.latlng }, (results: any, status: any) => {
+          if (status === 'OK' && results[0]) {
+            const place = results[0];
+            let businessAddress = place.formatted_address || '';
+            let businessCity = '';
+            let businessState = '';
+            let businessPincode = '';
+
+            for (const component of place.address_components || []) {
+              const componentType = component.types[0];
+              switch (componentType) {
+                case 'locality':
+                  businessCity = component.long_name;
+                  break;
+                case 'administrative_area_level_1':
+                  businessState = component.long_name;
+                  break;
+                case 'postal_code':
+                  businessPincode = component.long_name;
+                  break;
+              }
+            }
+            setForm((f: any) => ({
+              ...f,
+              businessAddress,
+              businessCity,
+              businessState,
+              businessPincode,
+            }));
+            map.setView(e.latlng, map.getZoom());
+          }
+        });
+      }
     },
   });
 
@@ -39,6 +79,8 @@ const LocationPicker = ({ lat, lng, setLat, setLng }: any) => {
 
 const ContractorProfile = () => {
   const { toast } = useToast();
+  const { isLoaded, google } = useGoogleMaps();
+  const addressInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     businessName: "",
@@ -62,22 +104,59 @@ const ContractorProfile = () => {
 
   // 📍 Get current location once (prefill map)
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setForm((f) => ({
-          ...f,
-          businessLatitude: pos.coords.latitude,
-          businessLongitude: pos.coords.longitude,
-        }));
-      },
-      () => {
-        toast({
-          title: "Location access denied",
-          description: "You can still pick a location manually on the map.",
-        });
-      }
-    );
-  }, []);
+    if ('geolocation' in navigator && isLoaded && google) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setForm((f) => ({
+            ...f,
+            businessLatitude: lat,
+            businessLongitude: lng,
+          }));
+
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+            if (status === 'OK' && results[0]) {
+              const place = results[0];
+              let businessAddress = place.formatted_address || '';
+              let businessCity = '';
+              let businessState = '';
+              let businessPincode = '';
+
+              for (const component of place.address_components || []) {
+                const componentType = component.types[0];
+                switch (componentType) {
+                  case 'locality':
+                    businessCity = component.long_name;
+                    break;
+                  case 'administrative_area_level_1':
+                    businessState = component.long_name;
+                    break;
+                  case 'postal_code':
+                    businessPincode = component.long_name;
+                    break;
+                }
+              }
+              setForm((f) => ({
+                ...f,
+                businessAddress,
+                businessCity,
+                businessState,
+                businessPincode,
+              }));
+            }
+          });
+        },
+        () => {
+          toast({
+            title: "Location access denied",
+            description: "You can still pick a location manually on the map.",
+          });
+        }
+      );
+    }
+  }, [isLoaded, google]);
 
   // 🔹 Fetch profile on mount
   useEffect(() => {
@@ -97,6 +176,55 @@ const ContractorProfile = () => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (isLoaded && google && addressInputRef.current) {
+      const autocomplete = new google.maps.places.Autocomplete(addressInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: "in" }, // Restrict to India for better relevance, can be removed
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          let businessAddress = place.formatted_address || '';
+          let businessCity = '';
+          let businessState = '';
+          let businessPincode = '';
+
+          for (const component of place.address_components || []) {
+            const componentType = component.types[0];
+            switch (componentType) {
+              case 'locality':
+                businessCity = component.long_name;
+                break;
+              case 'administrative_area_level_1':
+                businessState = component.long_name;
+                break;
+              case 'postal_code':
+                businessPincode = component.long_name;
+                break;
+            }
+          }
+          setForm((f) => ({
+            ...f,
+            businessAddress,
+            businessCity,
+            businessState,
+            businessPincode,
+            businessLatitude: place.geometry?.location?.lat() || 0,
+            businessLongitude: place.geometry?.location?.lng() || 0,
+          }));
+        } else {
+          toast({
+            title: 'Address not found',
+            description: 'Please select a valid address from the suggestions.',
+            variant: 'destructive',
+          });
+        }
+      });
+    }
+  }, [isLoaded, google]);
 
   const handleChange = (e: any) => {
     const { id, value } = e.target;
@@ -165,6 +293,7 @@ const ContractorProfile = () => {
                       value={(form as any)[key]}
                       onChange={handleChange}
                       type={key === "coverageRadius" ? "number" : "text"}
+                      ref={key === "businessAddress" ? addressInputRef : null}
                     />
                   </div>
                 ))}
@@ -187,15 +316,11 @@ const ContractorProfile = () => {
                     <LocationPicker
                       lat={form.businessLatitude}
                       lng={form.businessLongitude}
-                      setLat={(lat: number) =>
-                        setForm((f) => ({ ...f, businessLatitude: lat }))
-                      }
-                      setLng={(lng: number) =>
-                        setForm((f) => ({ ...f, businessLongitude: lng }))
-                      }
+                      setForm={setForm}
+                      google={google}
                     />
                   </MapContainer>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 hidden"> {/* Hidden lat/long inputs */}
                     <Input
                       id="businessLatitude"
                       value={form.businessLatitude}

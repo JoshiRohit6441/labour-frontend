@@ -1,7 +1,8 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import getSocket from '@/lib/socket/client';
+// import {useEffect} from
 
 interface SocketContextType {
   socket: Socket | null;
