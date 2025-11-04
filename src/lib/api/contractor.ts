@@ -55,6 +55,7 @@ export const contractorWorkersApi = {
 
 export const contractorJobsApi = {
   list: (page = 1, limit = 10) => apiClient.get<{ items: any[]; total: number }>(`/api/contractor/jobs?page=${page}&limit=${limit}`),
+  details: (jobId: string) => apiClient.get<{ job: any }>(`/api/contractor/jobs/${jobId}`),
   nearby: async (page = 1, limit = 10) => {
     // Fetch contractor profile to get location and radius
     const profile = await contractorProfileApi.get();
@@ -65,9 +66,17 @@ export const contractorJobsApi = {
       `/api/contractor/nearby-jobs?page=${page}&limit=${limit}&latitude=${lat}&longitude=${lng}&radius=${radius}`
     );
   },
-  submitQuote: (jobId: string, payload: any) => apiClient.post(`/api/contractor/jobs/${jobId}/quotes`, payload),
+  claimJob: (jobId: string, workerIds: string[]) => apiClient.post(`/api/contractor/jobs/${jobId}/claim`, { workerIds }),
+  initiateChat: (jobId: string) => apiClient.post(`/api/contractor/jobs/${jobId}/chat/initiate`),
+  submitAdvancedQuote: (jobId: string, formData: FormData) => apiClient.post(`/api/contractor/jobs/${jobId}/quotes`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  requestAdvance: (jobId: string, quoteId: string, amount: number) => apiClient.post(`/api/contractor/jobs/${jobId}/quotes/${quoteId}/request-advance`, { amount }),
   updateQuote: (jobId: string, quoteId: string, payload: any) => apiClient.put(`/api/contractor/jobs/${jobId}/quotes/${quoteId}`, payload),
   cancelQuote: (jobId: string, quoteId: string) => apiClient.delete(`/api/contractor/jobs/${jobId}/quotes/${quoteId}`),
+  scheduleMeeting: (jobId: string, data: any) => apiClient.post(`/api/contractor/meetings`, { ...data, jobId }),
   start: (jobId: string) => apiClient.post(`/api/contractor/jobs/${jobId}/start`),
   complete: (jobId: string) => apiClient.post(`/api/contractor/jobs/${jobId}/complete`),
   assignWorkers: (jobId: string, workerIds: string[]) => apiClient.post(`/api/contractor/jobs/${jobId}/assign-workers`, { workerIds }),
@@ -96,4 +105,10 @@ export const contractorNotificationsApi = {
   updatePreferences: (payload: any) => apiClient.put(`/api/contractor/notifications/preferences`, payload),
 };
 
-
+export const contractorLocationApi = {
+  startTravel: (jobId: string) => apiClient.post(`/api/contractor/jobs/${jobId}/start-travel`),
+  endTravel: (jobId: string) => apiClient.post(`/api/contractor/jobs/${jobId}/end-travel`),
+  update: (jobId: string, latitude: number, longitude: number) => apiClient.post(`/api/contractor/jobs/${jobId}/update-location`, { latitude, longitude }),
+  getTravelStatus: (jobId: string) => apiClient.get(`/api/contractor/jobs/${jobId}/travel-status`),
+  share: (jobId: string, workerPhone: string) => apiClient.post(`/api/contractor/jobs/${jobId}/share-location`, { workerPhone }),
+};

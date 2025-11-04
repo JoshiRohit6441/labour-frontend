@@ -1,21 +1,28 @@
 import { io, Socket } from 'socket.io-client';
+import { authApi } from '@/lib/api/auth';
 
-let socket: Socket | null = null;
+const URL = process.env.NODE_ENV === 'production' ? window.location.origin : 'http://localhost:8000';
 
-export const getSocket = () => {
-  if (socket) return socket;
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-  socket = io(baseURL, {
+const getSocket = (): Socket => {
+  const token = authApi.getAccessToken();
+
+  const socket = io(URL, {
     autoConnect: false,
-    transports: ['websocket'], // avoid polling SID issues
-    path: '/socket.io',
-    auth: accessToken ? { token: accessToken } : undefined,
-    withCredentials: true,
+    auth: {
+      token: token ? `${token}` : ''
+    }
   });
+
+  socket.on('connect_error', (err) => {
+    console.error('Socket connection error:', err.message);
+    if (err.message === 'Authentication error') {
+      // Handle auth error, e.g., by logging out the user
+      authApi.logout();
+      window.location.href = '/login';
+    }
+  });
+
   return socket;
 };
 
 export default getSocket;
-
-

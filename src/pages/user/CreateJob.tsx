@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -35,6 +35,13 @@ const CreateJob = () => {
   const [numberOfWorkers, setNumberOfWorkers] = useState<string>('1');
   const [skillsCsv, setSkillsCsv] = useState('');
   const [budget, setBudget] = useState<string>('');
+  // BIDDING fields
+  const [detailedDescription, setDetailedDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [siteVisitDeadline, setSiteVisitDeadline] = useState('');
+  const [quoteSubmissionDeadline, setQuoteSubmissionDeadline] = useState('');
+  const [materialsProvidedBy, setMaterialsProvidedBy] = useState('');
+  const [expectedDays, setExpectedDays] = useState<string>('');
 
   // Leaflet default marker icon
   const DefaultIcon = L.icon({ iconUrl, shadowUrl: iconShadow });
@@ -51,7 +58,7 @@ const CreateJob = () => {
   };
 
   // Prefill current geolocation if permitted
-  useState(() => {
+  useEffect(() => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -61,7 +68,7 @@ const CreateJob = () => {
         () => {}
       );
     }
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +84,7 @@ const CreateJob = () => {
         latitude: Number(latitude),
         longitude: Number(longitude),
         scheduledDate: jobType === 'SCHEDULED' ? scheduledDate || undefined : undefined,
+        scheduledStartDate: jobType === 'SCHEDULED' ? scheduledDate || undefined : undefined,
         scheduledTime: jobType === 'SCHEDULED' ? scheduledTime || undefined : undefined,
         estimatedDuration: estimatedDuration ? Number(estimatedDuration) : undefined,
         numberOfWorkers: Number(numberOfWorkers || '1'),
@@ -85,6 +93,13 @@ const CreateJob = () => {
           .map((s) => s.trim())
           .filter(Boolean),
         budget: budget ? Number(budget) : undefined,
+        // BIDDING fields
+        detailedDescription: jobType === 'BIDDING' ? detailedDescription : undefined,
+        startDate: jobType === 'BIDDING' && startDate ? startDate : undefined,
+        siteVisitDeadline: jobType === 'BIDDING' && siteVisitDeadline ? new Date(siteVisitDeadline).toISOString() : undefined,
+        quoteSubmissionDeadline: jobType === 'BIDDING' && quoteSubmissionDeadline ? new Date(quoteSubmissionDeadline).toISOString() : undefined,
+        materialsProvidedBy: jobType === 'BIDDING' && materialsProvidedBy ? materialsProvidedBy : undefined,
+        expectedDays: jobType === 'BIDDING' && expectedDays ? Number(expectedDays) : undefined,
       } as const;
       await userJobsApi.create(payload as any);
       toast({ title: 'Job created' });
@@ -135,6 +150,49 @@ const CreateJob = () => {
                       <div className="space-y-2">
                         <Label htmlFor="scheduledTime">Scheduled Time</Label>
                         <Input id="scheduledTime" type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} />
+                      </div>
+                    </>
+                  )}
+                  {jobType === 'BIDDING' && (
+                    <>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="detailedDescription">Detailed Description *</Label>
+                        <Textarea 
+                          id="detailedDescription" 
+                          value={detailedDescription} 
+                          onChange={(e) => setDetailedDescription(e.target.value)} 
+                          required
+                          rows={4}
+                          placeholder="Provide detailed project requirements, scope of work, etc."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="startDate">Desired Start Date</Label>
+                        <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="expectedDays">Expected Duration (days)</Label>
+                        <Input id="expectedDays" type="number" min={1} value={expectedDays} onChange={(e) => setExpectedDays(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="siteVisitDeadline">Site Visit Deadline</Label>
+                        <Input id="siteVisitDeadline" type="datetime-local" value={siteVisitDeadline} onChange={(e) => setSiteVisitDeadline(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="quoteSubmissionDeadline">Quote Submission Deadline *</Label>
+                        <Input id="quoteSubmissionDeadline" type="datetime-local" value={quoteSubmissionDeadline} onChange={(e) => setQuoteSubmissionDeadline(e.target.value)} required />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="materialsProvidedBy">Materials Provided By</Label>
+                        <select 
+                          className="border rounded h-10 px-3" 
+                          value={materialsProvidedBy} 
+                          onChange={(e) => setMaterialsProvidedBy(e.target.value)}
+                        >
+                          <option value="">Select...</option>
+                          <option value="USER">User (Client)</option>
+                          <option value="CONTRACTOR">Contractor</option>
+                        </select>
                       </div>
                     </>
                   )}

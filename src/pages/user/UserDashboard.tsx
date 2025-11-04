@@ -4,6 +4,8 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { authApi } from '@/lib/api/auth';
+import { userDashboardApi } from '@/lib/api/user';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Plus, 
   Briefcase, 
@@ -18,36 +20,44 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const user = authApi.getCurrentUser();
 
+  const { data: statsData } = useQuery({
+    queryKey: ['user-dashboard-stats'],
+    queryFn: userDashboardApi.getStats,
+  });
+
+  const { data: recentJobsData } = useQuery({
+    queryKey: ['user-dashboard-recent-jobs'],
+    queryFn: userDashboardApi.getRecentJobs,
+  });
+
   const stats = [
     {
       icon: Briefcase,
       label: 'Total Jobs',
-      value: '0',
+      value: statsData?.stats?.totalJobs || 0,
       color: 'text-primary'
     },
     {
       icon: Clock,
       label: 'Active Jobs',
-      value: '0',
+      value: statsData?.stats?.activeJobs || 0,
       color: 'text-secondary'
     },
     {
       icon: CheckCircle2,
       label: 'Completed',
-      value: '0',
+      value: statsData?.stats?.completedJobs || 0,
       color: 'text-success'
     },
     {
       icon: DollarSign,
       label: 'Total Spent',
-      value: '₹0',
+      value: `₹${statsData?.stats?.totalSpent || 0}`,
       color: 'text-accent'
     }
   ];
 
-  const recentJobs = [
-    // Placeholder for when we implement job fetching
-  ];
+  const recentJobs = recentJobsData?.recentJobs || [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -78,7 +88,7 @@ const UserDashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {stats.map((stat, index) => (
-              <Card key={index} className="border-0 shadow-md">
+              <Card key={index} className="border-0 shadow-lg bg-gradient-to-br from-card to-card-foreground/5">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -96,7 +106,7 @@ const UserDashboard = () => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/user/jobs/create')}>
+            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer bg-primary/5" onClick={() => navigate('/user/jobs/create')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="h-5 w-5 text-primary" />
@@ -108,7 +118,7 @@ const UserDashboard = () => {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/user/jobs')}>
+            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer bg-secondary/5" onClick={() => navigate('/user/jobs')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-secondary" />
@@ -120,7 +130,7 @@ const UserDashboard = () => {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer" onClick={() => navigate('/user/payments')}>
+            <Card className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer bg-accent/5" onClick={() => navigate('/user/payments')}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-accent" />
@@ -154,7 +164,17 @@ const UserDashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Jobs will be listed here */}
+                  {recentJobs.map((job: any) => (
+                    <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-semibold">{job.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {job.contractor?.businessName || 'Not assigned'} • <span className={`font-medium ${job.status === 'COMPLETED' ? 'text-success' : 'text-secondary'}`}>{job.status}</span>
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/user/jobs/${job.id}`)}>View</Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

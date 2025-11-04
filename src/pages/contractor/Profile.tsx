@@ -84,6 +84,7 @@ const ContractorProfile = () => {
     (async () => {
       try {
         const res = await contractorProfileApi.get();
+        console.log("res : ", res)
         const p = res?.contractor;
         if (p) {
           setForm((f) => ({ ...f, ...p }));

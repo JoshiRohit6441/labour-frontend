@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
 const ContractorJobs = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const [page, setPage] = useState(1);
@@ -47,21 +49,30 @@ const ContractorJobs = () => {
                 <div className="space-y-3">
                   {items.map((j: any) => (
                     <div key={j.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                      <div>
+                      <div 
+                        className="flex-1 cursor-pointer" 
+                        onClick={() => navigate(`/contractor/jobs/${j.id}`)}
+                      >
                         <p className="font-medium">{j.title}</p>
-                        <p className="text-sm text-muted-foreground">Budget: ₹{j.budget || '—'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {j.jobType} • {j.city}, {j.state} • Budget: ₹{j.budget || '—'}
+                        </p>
+                        {j.scheduledStartDate && (
+                          <p className="text-xs text-muted-foreground">
+                            Scheduled: {new Date(j.scheduledStartDate).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
-                      <Button size="sm" variant="outline" onClick={async () => {
-                        const amount = prompt('Enter quote amount (INR)')
-                        if (!amount) return;
-                        try {
-                          await contractorJobsApi.submitQuote(j.id, { amount: Number(amount) });
-                          toast({ title: 'Quote submitted' });
-                          refetch();
-                        } catch (e: any) {
-                          toast({ title: 'Failed to submit quote', description: e?.response?.data?.message, variant: 'destructive' });
-                        }
-                      }}>Quote</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/contractor/jobs/${j.id}`);
+                        }}
+                      >
+                        View Details
+                      </Button>
                     </div>
                   ))}
                 </div>

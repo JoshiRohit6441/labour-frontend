@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/layout/Header';
 import { authApi, LoginData } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/usePageMetadata';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
+  usePageMetadata('Login | LabourHire', 'Login to your LabourHire account to manage your jobs and profile.');
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);

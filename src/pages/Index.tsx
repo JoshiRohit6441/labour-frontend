@@ -1,23 +1,24 @@
 import { useNavigate } from 'react-router-dom';
+import { usePageMetadata } from '@/hooks/usePageMetadata';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { 
-  Briefcase, 
-  Users, 
-  Clock, 
-  Shield, 
-  CheckCircle2, 
+import {
+  Briefcase,
+  Users,
+  Clock,
+  Shield,
+  CheckCircle2,
   Star,
   ArrowRight,
   Search,
   MessageSquare,
   CreditCard
 } from 'lucide-react';
-import heroImage from '@/assets/hero-image.jpg';
 
 const Index = () => {
+  usePageMetadata('LabourHire | Find Skilled Labour Near You', 'Connect with verified contractors and get your work done efficiently. Post a job or find work in minutes.');
   const navigate = useNavigate();
 
   const features = [
@@ -66,33 +67,29 @@ const Index = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-hero z-0" />
-        <div 
-          className="absolute inset-0 opacity-20 bg-cover bg-center z-0"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        />
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary to-primary-dark text-white">
         <div className="container relative z-10 py-20 md:py-32">
-          <div className="max-w-3xl mx-auto text-center text-white animate-fade-in">
+          <div className="max-w-3xl mx-auto text-center animate-fade-in">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
               Find Skilled Labour for Your Next Project
             </h1>
             <p className="text-lg md:text-xl mb-8 text-white/90">
-              Connect with verified contractors and get your work done efficiently. 
+              Connect with verified contractors and get your work done efficiently.
               Post a job or find work in minutes.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="secondary"
-                className="text-lg px-8"
+                className="text-lg px-8 bg-white text-primary hover:bg-white/90"
                 onClick={() => navigate('/register?role=user')}
               >
                 I Need Workers
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button 
+              <Button
                 size="lg"
+                variant="outline"
                 className="text-lg px-8 bg-white text-primary hover:bg-white/90"
                 onClick={() => navigate('/register?role=contractor')}
               >
@@ -116,7 +113,7 @@ const Index = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <Card key={index} className="border-2 border-primary/10 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center space-y-4">
                     <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
@@ -143,7 +140,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                <Card className="border-0 shadow-md h-full">
+                <Card className="border border-muted shadow-sm h-full">
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4">
                       <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary text-white text-2xl font-bold">
@@ -194,7 +191,7 @@ const Index = () => {
                 Join thousands of satisfied users and contractors on our platform
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
+                <Button
                   size="lg"
                   className="text-lg px-8"
                   onClick={() => navigate('/register')}
@@ -202,7 +199,7 @@ const Index = () => {
                   Sign Up Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <Button 
+                <Button
                   size="lg"
                   variant="outline"
                   className="text-lg px-8"

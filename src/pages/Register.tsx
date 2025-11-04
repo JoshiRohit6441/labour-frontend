@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Header } from '@/components/layout/Header';
 import { authApi, RegisterData } from '@/lib/api/auth';
 import { useToast } from '@/hooks/use-toast';
+import { usePageMetadata } from '@/hooks/usePageMetadata';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 const Register = () => {
+  usePageMetadata('Register | LabourHire', 'Create a new account on LabourHire to find skilled labour or offer your services as a contractor.');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();

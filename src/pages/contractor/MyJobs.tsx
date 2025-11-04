@@ -6,8 +6,11 @@ import { contractorJobsApi } from '@/lib/api/contractor';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
+import { useAppDispatch, setActiveJob, clearActiveJob } from '@/store';
+
 const MyJobs = () => {
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['contractor-jobs', 1],
     queryFn: () => contractorJobsApi.list(1, 10),
@@ -40,10 +43,20 @@ const MyJobs = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" onClick={async () => {
-                          try { await contractorJobsApi.start(j.id); toast({ title: 'Job started' }); refetch(); } catch {}
+                          try { 
+                            await contractorJobsApi.start(j.id); 
+                            toast({ title: 'Job started' }); 
+                            dispatch(setActiveJob(j));
+                            refetch(); 
+                          } catch {}
                         }}>Start</Button>
                         <Button size="sm" variant="secondary" onClick={async () => {
-                          try { await contractorJobsApi.complete(j.id); toast({ title: 'Job completed' }); refetch(); } catch {}
+                          try { 
+                            await contractorJobsApi.complete(j.id); 
+                            toast({ title: 'Job completed' }); 
+                            dispatch(clearActiveJob());
+                            refetch(); 
+                          } catch {}
                         }}>Complete</Button>
                         <Button size="sm" variant="outline" onClick={async () => {
                           const ids = prompt('Assign worker IDs (comma separated)') || '';

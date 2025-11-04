@@ -13,17 +13,15 @@ const UserJobs = () => {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  // ✅ Fetch jobs with pagination
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['user-jobs', page],
     queryFn: () => userJobsApi.list(page, limit),
-    keepPreviousData: true, // prevents flicker when changing pages
+    // keepPreviousData: true,
   });
 
-  console.log('data:', data);
 
-  const items = data?.jobs || [];
-  const pagination = data?.pagination || {};
+  const items = data?.data?.jobs || [];
+  const pagination = data?.data?.pagination || {};
 
   return (
     <div className="min-h-screen flex flex-col">

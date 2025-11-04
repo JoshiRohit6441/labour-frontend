@@ -11,21 +11,22 @@ interface Props {
   amount: number; // in INR rupees
   jobId?: string;
   label?: string;
+  paymentType?: 'ADVANCE' | 'FINAL';
 }
 
-export const RazorpayButton = ({ amount, jobId, label = 'Pay with Razorpay' }: Props) => {
+export const RazorpayButton = ({ amount, jobId, label = 'Pay with Razorpay', paymentType }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
   const pay = async () => {
     try {
       setLoading(true);
-      const orderRes = await userPaymentsApi.createOrder(amount * 100, 'INR', jobId);
+      const orderRes = await userPaymentsApi.createOrder(amount, 'INR', jobId, paymentType);
       const order = orderRes.data as any;
 
       const options = {
         key: order.key,
-        amount: order.amount,
+        amount: order.amount, // This amount is in paise, as returned by the backend
         currency: order.currency,
         order_id: order.orderId,
         handler: async (response: any) => {

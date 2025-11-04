@@ -84,6 +84,18 @@ export const initNotificationsSocket = async (dispatch: AppDispatch) => {
       duration: 6000
     });
   });
+
+  // Job status updates to toggle ActiveJobFooter
+  socket.on('job_update', (payload: any) => {
+    const type = payload?.updateType;
+    const jobId = payload?.jobId;
+    if (!type || !jobId) return;
+    if (type === 'job_started') {
+      dispatch(setActiveJob({ id: jobId, title: payload?.data?.title, jobType: payload?.data?.jobType || 'IMMEDIATE', status: 'IN_PROGRESS' } as any));
+    } else if (type === 'job_completed' || type === 'job_cancelled') {
+      dispatch(clearActiveJob());
+    }
+  });
 };
 
 
