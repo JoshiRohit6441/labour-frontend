@@ -13,7 +13,7 @@ import { useJobSocket } from '@/hooks/useJobSocket';
 
 import { useState, useEffect } from 'react';
 import Map from '@/components/ui/Map';
-import { getSocket } from '@/lib/socket/client';
+import getSocket from '@/lib/socket/client';
 
 const UserJobDetails = () => {
   const { jobId } = useParams();
